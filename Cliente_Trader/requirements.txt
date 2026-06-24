@@ -1,0 +1,19 @@
+# ============================================================================
+# Dependencias del Sistema de Trading Algorítmico - Proyecto Final TI
+# Instalación: pip install -r requirements.txt
+# ============================================================================
+
+# --- Motor Cuantitativo ---
+numpy                   # Simulación Monte Carlo vectorizada (50,000 iteraciones)
+pandas                  # Estructuras de datos para series temporales OHLCV
+
+# --- Generación de Reportes PDF ---
+fpdf2                   # Generación programática de reportes de auditoría
+
+# --- Interfaz Gráfica Premium (Dashboard) ---
+customtkinter           # Framework GUI moderno con soporte Dark Mode nativo
+matplotlib              # Backend de renderizado para gráficos embebidos
+mplfinance              # Gráficos de velas financieras (candlestick charts)
+
+# --- API del Broker (Wrapper comunitario - Solo uso educativo) ---
+git+https://github.com/Lu-Yi-Hsun/iqoptionapi.git

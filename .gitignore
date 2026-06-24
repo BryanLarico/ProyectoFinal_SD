@@ -1,0 +1,43 @@
+# ============================================================================
+# .gitignore — Sistema de Copy Trading Distribuido
+# Arquitectura Cliente-Servidor (App_Cliente_Trader + App_Servidor_Maestro)
+# ============================================================================
+
+# --- CREDENCIALES SENSIBLES (NUNCA subir a GitHub) ---
+user.py
+**/user.py
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+.env
+venv/
+.venv/
+
+# --- Reportes generados automáticamente ---
+Reportes_Inversion/
+*.pdf
+
+# --- IDE y editores ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# --- Sistema Operativo ---
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# --- Jupyter Notebooks ---
+.ipynb_checkpoints/
+
+# --- Logs ---
+*.log

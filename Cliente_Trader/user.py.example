@@ -1,0 +1,7 @@
+# user.py — Configuración de credenciales IQ Option
+# ======================================================================
+# IMPORTANTE: NO SUBIR ESTE ARCHIVO A GITHUB
+# ======================================================================
+
+EMAIL = "tu_correo@ejemplo.com"
+PASSWORD = "tu_contraseña_aqui"

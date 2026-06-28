@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QUANT-BOT — Analytics & Historial</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',system-ui,sans-serif;background:#0A0A0F;color:#E8E8ED;min-height:100vh}
+
+/* === NAV TABS === */
+.nav{background:#121218;border-bottom:1px solid #1E1E28;padding:0 24px;display:flex;align-items:center;gap:0}
+.nav-brand{color:#00B074;font-size:18px;font-weight:800;margin-right:32px;letter-spacing:-0.5px}
+.nav a{color:#6B6B78;text-decoration:none;padding:14px 20px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;border-bottom:2px solid transparent;transition:all .2s}
+.nav a:hover{color:#E8E8ED}
+.nav a.active{color:#00B074;border-bottom-color:#00B074}
+
+/* === MAIN === */
+.main{max-width:1440px;margin:0 auto;padding:20px 24px}
+
+/* === FILTER BAR === */
+.filter-bar{background:linear-gradient(135deg,#141420,#1A1A2A);border:1px solid #252535;border-radius:12px;padding:16px 20px;display:flex;align-items:flex-end;gap:14px;margin-bottom:20px;flex-wrap:wrap}
+.filter-bar .fg{display:flex;flex-direction:column;gap:4px}
+.filter-bar label{font-size:11px;font-weight:700;color:#6B6B78;text-transform:uppercase;letter-spacing:0.5px}
+.filter-bar input{padding:8px 12px;border-radius:6px;border:1px solid #252535;background:#0A0A0F;color:#E8E8ED;font-size:13px;font-family:'Inter',sans-serif}
+.filter-bar input:focus{outline:none;border-color:#00B074;box-shadow:0 0 0 2px rgba(0,176,116,.15)}
+.btn-search{padding:8px 28px;border:none;border-radius:6px;background:linear-gradient(135deg,#00B074,#00D68F);color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:0.5px}
+.btn-search:hover{transform:translateY(-1px);box-shadow:0 4px 15px rgba(0,176,116,.3)}
+.btn-reset{padding:8px 20px;border:1px solid #252535;border-radius:6px;background:transparent;color:#6B6B78;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-reset:hover{border-color:#6B6B78;color:#E8E8ED}
+
+/* === KPI CARDS === */
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px}
+.kpi{background:linear-gradient(145deg,#141420,#18182A);border:1px solid #252535;border-radius:12px;padding:18px;position:relative;overflow:hidden;transition:all .25s}
+.kpi:hover{border-color:#353548;transform:translateY(-2px);box-shadow:0 8px 25px rgba(0,0,0,.3)}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:12px 12px 0 0}
+.kpi.green::before{background:linear-gradient(90deg,#00B074,#00D68F)}
+.kpi.red::before{background:linear-gradient(90deg,#FF3B30,#FF6B60)}
+.kpi.blue::before{background:linear-gradient(90deg,#0066FF,#3388FF)}
+.kpi.purple::before{background:linear-gradient(90deg,#8B5CF6,#A78BFA)}
+.kpi.amber::before{background:linear-gradient(90deg,#F59E0B,#FBBF24)}
+.kpi-label{font-size:11px;font-weight:700;color:#6B6B78;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px}
+.kpi-value{font-size:28px;font-weight:800;letter-spacing:-1px}
+.kpi-sub{font-size:11px;color:#6B6B78;margin-top:4px}
+.kpi.green .kpi-value{color:#00D68F}
+.kpi.red .kpi-value{color:#FF6B60}
+.kpi.blue .kpi-value{color:#3388FF}
+.kpi.purple .kpi-value{color:#A78BFA}
+.kpi.amber .kpi-value{color:#FBBF24}
+
+/* === CHARTS GRID === */
+.charts{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:20px}
+.chart-card{background:linear-gradient(145deg,#141420,#18182A);border:1px solid #252535;border-radius:12px;padding:18px;min-height:280px}
+.chart-card h3{font-size:12px;font-weight:700;color:#6B6B78;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:14px}
+.chart-card canvas{width:100%!important;max-height:240px}
+.charts-row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+
+/* === TABLE === */
+.tbl-wrap{background:linear-gradient(145deg,#141420,#18182A);border:1px solid #252535;border-radius:12px;padding:18px;margin-bottom:20px}
+.tbl-wrap h3{font-size:12px;font-weight:700;color:#6B6B78;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px}
+.tbl-scroll{max-height:350px;overflow-y:auto;border-radius:8px}
+.tbl-scroll::-webkit-scrollbar{width:6px}
+.tbl-scroll::-webkit-scrollbar-track{background:#0A0A0F;border-radius:3px}
+.tbl-scroll::-webkit-scrollbar-thumb{background:#353548;border-radius:3px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{position:sticky;top:0;background:#1A1A2A;color:#6B6B78;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;padding:10px 12px;text-align:left;border-bottom:1px solid #252535}
+tbody td{padding:9px 12px;border-bottom:1px solid #1A1A2A}
+tbody tr:hover{background:rgba(0,176,116,.04)}
+.res-win{color:#00D68F;font-weight:700}
+.res-loss{color:#FF6B60;font-weight:700}
+.res-tie{color:#6B6B78;font-weight:600}
+.type-call{color:#00D68F;font-weight:700}
+.type-put{color:#FF6B60;font-weight:700}
+
+/* === FOOTER ACTIONS === */
+.actions{display:flex;gap:12px;margin-bottom:40px}
+.btn-pdf{padding:12px 28px;border:none;border-radius:8px;background:linear-gradient(135deg,#0066FF,#3388FF);color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:0.5px}
+.btn-pdf:hover{transform:translateY(-1px);box-shadow:0 4px 15px rgba(0,102,255,.3)}
+.btn-csv{padding:12px 28px;border:1px solid #252535;border-radius:8px;background:transparent;color:#E8E8ED;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s}
+.btn-csv:hover{border-color:#6B6B78}
+
+/* === EMPTY STATE === */
+.empty{text-align:center;padding:60px 20px;color:#6B6B78}
+.empty h2{font-size:20px;color:#E8E8ED;margin-bottom:8px}
+
+/* === LOADING SPINNER === */
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid #252535;border-top-color:#00B074;border-radius:50%;animation:spin .6s linear infinite;margin-right:8px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* === RESPONSIVE === */
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}.charts,.charts-row2{grid-template-columns:1fr}}
+@media(max-width:700px){.kpis{grid-template-columns:repeat(2,1fr)}.filter-bar{flex-direction:column}}
+</style></head>
+<body>
+
+<div class="nav">
+  <span class="nav-brand">QUANT-BOT</span>
+  <a href="/">TRADING EN VIVO</a>
+  <a href="/analytics" class="active">ANALYTICS & HISTORIAL</a>
+</div>
+
+<div class="main">
+  <!-- FILTER BAR -->
+  <div class="filter-bar">
+    <div class="fg"><label>Fecha Inicio</label><input type="date" id="fInicio"></div>
+    <div class="fg"><label>Fecha Fin</label><input type="date" id="fFin"></div>
+    <div class="fg"><label>Hora Inicio</label><input type="time" id="hInicio" value="00:00"></div>
+    <div class="fg"><label>Hora Fin</label><input type="time" id="hFin" value="23:59"></div>
+    <button class="btn-search" onclick="buscar()">BUSCAR</button>
+    <button class="btn-reset" onclick="resetFiltros()">LIMPIAR</button>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="kpis">
+    <div class="kpi green"><div class="kpi-label">TOTAL OPERACIONES</div><div class="kpi-value" id="kTotalOps">0</div><div class="kpi-sub" id="kOpsDetail">0 G / 0 P / 0 E</div></div>
+    <div class="kpi blue"><div class="kpi-label">WIN RATE</div><div class="kpi-value" id="kWinRate">0.0%</div><div class="kpi-sub" id="kProfitFactor">Profit Factor: 0.00</div></div>
+    <div class="kpi green"><div class="kpi-label">P&L NETO</div><div class="kpi-value" id="kPnl">$0.00</div><div class="kpi-sub" id="kRoi">ROI: 0.00%</div></div>
+    <div class="kpi purple"><div class="kpi-label">MEJOR RACHA</div><div class="kpi-value" id="kRacha">0</div><div class="kpi-sub">Ganadas consecutivas</div></div>
+    <div class="kpi red"><div class="kpi-label">MAX DRAWDOWN</div><div class="kpi-value" id="kDrawdown">$0.00</div><div class="kpi-sub" id="kWorstStreak">Peor racha: 0</div></div>
+  </div>
+
+  <!-- CHARTS ROW 1 -->
+  <div class="charts">
+    <div class="chart-card"><h3>P&L ACUMULADO</h3><canvas id="cPnl"></canvas></div>
+    <div class="chart-card"><h3>DISTRIBUCIÓN DE RESULTADOS</h3><canvas id="cDonut"></canvas></div>
+  </div>
+
+  <!-- CHARTS ROW 2 -->
+  <div class="charts-row2">
+    <div class="chart-card"><h3>PROFIT POR ACTIVO</h3><canvas id="cActivo"></canvas></div>
+    <div class="chart-card"><h3>OPERACIONES POR HORA DEL DÍA</h3><canvas id="cHora"></canvas></div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="tbl-wrap">
+    <h3>OPERACIONES FILTRADAS <span id="tCount" style="color:#00D68F"></span></h3>
+    <div class="tbl-scroll">
+      <table>
+        <thead><tr><th>Fecha</th><th>Hora</th><th>Activo</th><th>Algoritmo</th><th>Tipo</th><th>Inversión</th><th>Resultado</th><th>P&L</th></tr></thead>
+        <tbody id="tBody"><tr><td colspan="8" class="empty"><h2>Seleccione un rango de fechas</h2><p>Use los filtros para consultar el historial</p></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="actions">
+    <button class="btn-pdf" onclick="genReport()">GENERAR REPORTE PDF</button>
+    <button class="btn-csv" onclick="exportCSV()">EXPORTAR CSV</button>
+  </div>
+</div>
+
+<script>
+var chartPnl=null,chartDonut=null,chartActivo=null,chartHora=null;
+var lastOps=[];
+
+// --- Chart defaults ---
+Chart.defaults.color='#6B6B78';
+Chart.defaults.borderColor='#1E1E28';
+Chart.defaults.font.family="'Inter',sans-serif";
+
+function initCharts(){
+  chartPnl=new Chart(document.getElementById('cPnl'),{type:'line',data:{labels:[],datasets:[{label:'P&L Acumulado',data:[],borderColor:'#00B074',borderWidth:2,pointRadius:0,fill:{target:'origin',above:'rgba(0,176,116,.08)',below:'rgba(255,59,48,.08)'},tension:.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1A1A2A',borderColor:'#252535',borderWidth:1,titleFont:{weight:'700'},bodyFont:{size:12},padding:10,callbacks:{label:function(c){return '$'+c.parsed.y.toFixed(2)}}}},scales:{x:{display:true,ticks:{maxTicksLimit:10,font:{size:10}}},y:{grid:{color:'#1E1E28'},ticks:{callback:function(v){return '$'+v.toFixed(2)}}}},animation:{duration:400}}});
+
+  chartDonut=new Chart(document.getElementById('cDonut'),{type:'doughnut',data:{labels:['Ganadas','Perdidas','Empates'],datasets:[{data:[0,0,0],backgroundColor:['#00D68F','#FF6B60','#4A4A5A'],borderWidth:0,hoverOffset:8}]},options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{position:'bottom',labels:{padding:14,usePointStyle:true,pointStyle:'circle',font:{size:12,weight:'600'}}}},animation:{duration:400}}});
+
+  chartActivo=new Chart(document.getElementById('cActivo'),{type:'bar',data:{labels:[],datasets:[{label:'Profit',data:[],backgroundColor:[],borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return '$'+c.parsed.y.toFixed(2)}}}},scales:{x:{ticks:{font:{size:10}}},y:{grid:{color:'#1E1E28'},ticks:{callback:function(v){return '$'+v}}}},animation:{duration:400}}});
+
+  chartHora=new Chart(document.getElementById('cHora'),{type:'bar',data:{labels:[],datasets:[{label:'Ganadas',data:[],backgroundColor:'#00D68F',borderRadius:4},{label:'Perdidas',data:[],backgroundColor:'#FF6B60',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{usePointStyle:true,pointStyle:'circle',font:{size:11}}}},scales:{x:{stacked:true,ticks:{font:{size:10}}},y:{stacked:true,grid:{color:'#1E1E28'}}},animation:{duration:400}}});
+}
+
+function buscar(){
+  var fi=document.getElementById('fInicio').value;
+  var ff=document.getElementById('fFin').value;
+  var hi=document.getElementById('hInicio').value;
+  var hf=document.getElementById('hFin').value;
+  fetch('/api/analytics/query',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fecha_inicio:fi,fecha_fin:ff,hora_inicio:hi,hora_fin:hf})}).then(r=>r.json()).then(d=>{
+    lastOps=d.operaciones||[];
+    renderKPIs(d.kpis||{});
+    renderCharts(d);
+    renderTable(d.operaciones||[]);
+  }).catch(e=>console.error(e));
+}
+
+function resetFiltros(){
+  document.getElementById('fInicio').value='';
+  document.getElementById('fFin').value='';
+  document.getElementById('hInicio').value='00:00';
+  document.getElementById('hFin').value='23:59';
+  buscar();
+}
+
+function renderKPIs(k){
+  document.getElementById('kTotalOps').textContent=k.total_ops||0;
+  document.getElementById('kOpsDetail').textContent=(k.ganadas||0)+' G / '+(k.perdidas||0)+' P / '+(k.empates||0)+' E';
+  document.getElementById('kWinRate').textContent=(k.win_rate||0).toFixed(1)+'%';
+  document.getElementById('kProfitFactor').textContent='Profit Factor: '+(k.profit_factor||0).toFixed(2);
+  var pnl=k.pnl_neto||0;
+  var el=document.getElementById('kPnl');
+  el.textContent=(pnl>=0?'+':'')+' $'+Math.abs(pnl).toFixed(2);
+  el.parentElement.className='kpi '+(pnl>=0?'green':'red');
+  document.getElementById('kRoi').textContent='ROI: '+(k.roi||0).toFixed(2)+'%';
+  document.getElementById('kRacha').textContent=k.mejor_racha||0;
+  document.getElementById('kDrawdown').textContent='$'+(k.max_drawdown||0).toFixed(2);
+  document.getElementById('kWorstStreak').textContent='Peor racha: '+(k.peor_racha||0);
+}
+
+function renderCharts(d){
+  // PNL line
+  var pnl=d.pnl_temporal||[];
+  chartPnl.data.labels=pnl.map(function(p){return p.label});
+  chartPnl.data.datasets[0].data=pnl.map(function(p){return p.pnl_acum});
+  var lastVal=pnl.length>0?pnl[pnl.length-1].pnl_acum:0;
+  chartPnl.data.datasets[0].borderColor=lastVal>=0?'#00B074':'#FF3B30';
+  chartPnl.update();
+
+  // Donut
+  var k=d.kpis||{};
+  chartDonut.data.datasets[0].data=[k.ganadas||0,k.perdidas||0,k.empates||0];
+  chartDonut.update();
+
+  // By asset
+  var pa=d.por_activo||{};
+  var aLabels=Object.keys(pa);
+  var aData=aLabels.map(function(a){return pa[a].pnl});
+  var aColors=aData.map(function(v){return v>=0?'#00D68F':'#FF6B60'});
+  chartActivo.data.labels=aLabels;
+  chartActivo.data.datasets[0].data=aData;
+  chartActivo.data.datasets[0].backgroundColor=aColors;
+  chartActivo.update();
+
+  // By hour
+  var ph=d.por_hora||{};
+  var hLabels=Object.keys(ph).sort();
+  chartHora.data.labels=hLabels;
+  chartHora.data.datasets[0].data=hLabels.map(function(h){return ph[h].ganadas});
+  chartHora.data.datasets[1].data=hLabels.map(function(h){return ph[h].perdidas});
+  chartHora.update();
+}
+
+function renderTable(ops){
+  document.getElementById('tCount').textContent='('+ops.length+' registros)';
+  var tb=document.getElementById('tBody');
+  if(!ops.length){tb.innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:#6B6B78">Sin operaciones en este rango</td></tr>';return;}
+  var h='';
+  for(var i=ops.length-1;i>=0;i--){
+    var o=ops[i],p=o.profit||0;
+    var rc=o.resultado&&o.resultado.indexOf('GANADA')>=0?'res-win':o.resultado&&o.resultado.indexOf('PERDIDA')>=0?'res-loss':'res-tie';
+    var tc=o.tipo==='CALL'?'type-call':'type-put';
+    var pc=p>0?'res-win':p<0?'res-loss':'res-tie';
+    h+='<tr><td>'+o.fecha+'</td><td>'+o.hora+'</td><td>'+o.activo+'</td><td>'+(o.algoritmo||'-')+'</td><td class="'+tc+'">'+o.tipo+'</td><td>$'+(o.inversion||0).toFixed(2)+'</td><td class="'+rc+'">'+o.resultado+'</td><td class="'+pc+'">'+(p>=0?'+':'')+' $'+Math.abs(p).toFixed(2)+'</td></tr>';
+  }
+  tb.innerHTML=h;
+}
+
+function genReport(){
+  var fi=document.getElementById('fInicio').value;
+  var ff=document.getElementById('fFin').value;
+  var hi=document.getElementById('hInicio').value;
+  var hf=document.getElementById('hFin').value;
+  fetch('/api/analytics/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fecha_inicio:fi,fecha_fin:ff,hora_inicio:hi,hora_fin:hf})}).then(r=>r.json()).then(d=>{
+    if(d.url){window.open(d.url,'_blank');}
+    else{alert(d.error||'Error generando reporte');}
+  });
+}
+
+function exportCSV(){
+  if(!lastOps.length){alert('No hay operaciones para exportar');return;}
+  var csv='Fecha,Hora,Activo,Algoritmo,Tipo,Inversion,Resultado,Profit\n';
+  lastOps.forEach(function(o){csv+=o.fecha+','+o.hora+','+o.activo+','+(o.algoritmo||'-')+','+o.tipo+','+o.inversion+','+o.resultado+','+o.profit+'\n';});
+  var blob=new Blob([csv],{type:'text/csv'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='operaciones_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+
+window.onload=function(){
+  initCharts();
+  // Set default dates to today
+  var today=new Date().toISOString().slice(0,10);
+  document.getElementById('fInicio').value=today;
+  document.getElementById('fFin').value=today;
+  buscar();
+}
+</script>
+</body></html>

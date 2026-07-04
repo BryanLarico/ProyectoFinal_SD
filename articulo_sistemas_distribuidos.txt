@@ -1,0 +1,25 @@
+======================================================================
+SECCIÓN DE SISTEMAS DISTRIBUIDOS - ARTÍCULO CIENTÍFICO
+======================================================================
+
+Título Propuesto de la Sección:
+Arquitectura Distribuida y Orquestación Asíncrona en Redes de Copy Trading mediante ZeroMQ
+
+En el presente proyecto, se diseñó e implementó un sistema distribuido escalable bajo el paradigma de Controlador-Trabajador (Master-Slave) para la gestión automatizada de operaciones financieras ("Copy Trading"). Esta arquitectura se fundamenta en la descentralización del procesamiento de señales y la unificación del control estratégico en un nodo maestro.
+
+1. Infraestructura de Mensajería de Alto Rendimiento (ZeroMQ)
+Para satisfacer las demandas de baja latencia requeridas por los mercados financieros, se descartaron arquitecturas tradicionales HTTP/REST en favor de sockets asíncronos mediante la librería ZeroMQ. Esta decisión arquitectónica previene los cuellos de botella característicos de la sobrecarga de cabeceras HTTP y permite una comunicación TCP/IP directa. La topología de red implementada utiliza múltiples patrones de mensajería:
+
+- Patrón de Difusión (Publish-Subscribe): Se asignó un puerto dedicado (5555) donde el Servidor Maestro actúa como publicador (PUB). Este canal permite la diseminación de configuraciones globales (por ejemplo, cambios de algoritmos o ajustes de Stop Loss) a todos los nodos clientes simultáneamente. Debido a la naturaleza asíncrona del patrón PUB/SUB, el servidor puede emitir instrucciones masivas sin bloqueo computacional, garantizando un O(1) en el coste de envío desde la perspectiva del servidor.
+
+- Autenticación Concurrente (Request-Reply): La unión a la red distribuida requiere validación de acceso mediante un código de sala dinámico. El puerto 5556 (REP) se encarga de este proceso (Handshake). Al segmentar la autenticación en un puerto separado, se aísla la carga de conexión de los canales de operación continua, mitigando ataques de saturación o caídas de rendimiento por reintentos de conexión.
+
+- Canal Bidireccional Asíncrono (Router-Dealer): El núcleo del intercambio de datos operacionales se diseñó utilizando un modelo asimétrico ROUTER (Servidor, 5557) y DEALER (Clientes). A diferencia del patrón Request-Reply estricto, Router-Dealer permite la transmisión de comandos directos a nodos específicos y la recolección de reportes de métricas financieras sin esperar bloqueos de respuesta secuencial. Esto facilita al Maestro requerir reportes de operaciones de un nodo o generar informes globales (reduciendo el estado local distribuido) sin interrumpir el flujo de trading.
+
+2. Manejo de Tolerancia a Fallos y Concurrencia (Heartbeat)
+Para dotar al sistema de tolerancia a desconexiones abruptas, se implementó un mecanismo de "Latido" (Ping/Heartbeat). Cada cliente emite una señal de vida cada 5 segundos al servidor a través del canal DEALER. Un hilo (Thread) monitor en el servidor depura automáticamente las sesiones "zombis" que no han emitido latidos en los últimos 15 segundos. Esta estrategia de control de estado distribuido garantiza que la memoria del servidor se mantenga limpia y que la capacidad de orquestación no se degrade con el tiempo.
+
+3. Sincronización Segura de Interfaz Gráfica (Thread-Safe GUI)
+Dada la concurrencia nativa de ZeroMQ, las aplicaciones de los clientes están expuestas a condiciones de carrera (Race Conditions) al actualizar el estado de los componentes gráficos. Para resolverlo, el sistema abstrae la recepción de red en hilos (Workers) separados que se comunican con el hilo principal (Main Loop) a través de una cola de mensajes en memoria (queue.Queue). Esto garantiza actualizaciones deterministas de la interfaz gráfica y la ejecución segura de las llamadas a la API de inversión.
+
+En conclusión, la adopción de una arquitectura basada en ZeroMQ no solo provee la baja latencia requerida por el dominio del problema, sino que establece una base robusta y escalable que permite integrar de manera determinista un volumen indeterminado de terminales de inversión.

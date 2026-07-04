@@ -23,6 +23,7 @@ import iq_option
 import registro_operaciones
 import user
 from algoritmos import obtener_lista
+import cliente_zmq
 
 # ---------------------------------------------------------------------------
 # CONSTANTES
@@ -251,6 +252,7 @@ class MasterQuantDashboard(ctk.CTk):
 
         self.maestro_verificado = False
         self.codigo_maestro = ""
+        self.cliente_zmq = None
 
         self.ui_queue: queue.Queue = queue.Queue()
         self.bot_threads: List[threading.Thread] = []
@@ -718,13 +720,38 @@ class MasterQuantDashboard(ctk.CTk):
                            width=260, font=ctk.CTkFont(size=13))
         ent.pack(pady=(0, 12))
 
+        def _zmq_log(level, msg):
+            self.ui_queue.put({"type": "log", "level": level, "message": msg})
+
+        def _zmq_comando(accion, msg_dict):
+            if accion == "cambiar_algoritmo":
+                algo = msg_dict.get("algoritmo")
+                self.ui_queue.put({"type": "cmd_cambiar_algoritmo", "algoritmo": algo})
+            elif accion == "cambiar_parametros":
+                params = msg_dict.get("parametros", {})
+                self.ui_queue.put({"type": "cmd_cambiar_parametros", "parametros": params})
+            elif accion in ["solicitar_reporte", "solicitar_reporte_para_global"]:
+                self.ui_queue.put({"type": "cmd_enviar_reporte"})
+            elif accion == "desconectar":
+                self.ui_queue.put({"type": "cmd_desconectar"})
+
         def conectar():
             c = ent.get().strip()
             if c:
                 self.codigo_maestro = c
-                self.maestro_verificado = True
-                self.lbl_maestro.configure(text=f"Maestro: AUTENTICADO [{c}]", text_color=GREEN)
-                self.write_log("OK", f"Conectado al Maestro [{c}].")
+                self.cliente_zmq = cliente_zmq.ClienteZMQ(
+                    ip_maestro="127.0.0.1", 
+                    codigo_sala=c,
+                    callback_comando=_zmq_comando,
+                    callback_log=_zmq_log
+                )
+                if self.cliente_zmq.iniciar():
+                    self.maestro_verificado = True
+                    self.lbl_maestro.configure(text=f"Maestro: AUTENTICADO [{c}]", text_color=GREEN)
+                    self.write_log("OK", f"Conectado al Maestro [{c}].")
+                else:
+                    self.maestro_verificado = False
+                    self.lbl_maestro.configure(text="Maestro: FALLO AUTENTICACION", text_color=RED)
             dlg.destroy()
             self._habilitar_ui()
 
@@ -790,13 +817,43 @@ class MasterQuantDashboard(ctk.CTk):
                 ev = self.ui_queue.get_nowait()
                 t = ev.get("type")
                 if t == "log": self.write_log(ev["level"], ev["message"])
+                elif t == "cmd_cambiar_algoritmo":
+                    algo = ev["algoritmo"]
+                    self.cmb_algoritmo.set(algo)
+                    self.write_log("INFO", f"Algoritmo cambiado a {algo} por el Maestro.")
+                elif t == "cmd_cambiar_parametros":
+                    p = ev["parametros"]
+                    if "algoritmo" in p: self.cmb_algoritmo.set(p["algoritmo"])
+                    if "cuenta" in p: self.cmb_cuenta.set(p["cuenta"])
+                    if "inv" in p: 
+                        self.ent_inv.delete(0, "end"); self.ent_inv.insert(0, p["inv"])
+                    if "sl" in p: 
+                        self.ent_sl.delete(0, "end"); self.ent_sl.insert(0, p["sl"])
+                    if "tp" in p: 
+                        self.ent_tp.delete(0, "end"); self.ent_tp.insert(0, p["tp"])
+                    if "exp" in p: 
+                        self.ent_exp.delete(0, "end"); self.ent_exp.insert(0, p["exp"])
+                    self.write_log("INFO", "Parámetros actualizados por el Maestro.")
+                elif t == "cmd_desconectar":
+                    self.maestro_verificado = False
+                    self.lbl_maestro.configure(text="Maestro: DESCONECTADO (Kick)", text_color=RED)
+                    self.write_log("ALERTA", "Has sido desconectado por el Maestro.")
+                    if self.cliente_zmq:
+                        self.cliente_zmq.detener()
+                        self.cliente_zmq = None
+                    if self.bot_activo:
+                        self._toggle_bot() # Detener bot si estaba corriendo
+                elif t == "cmd_enviar_reporte":
+                    if self.cliente_zmq:
+                        self.cliente_zmq.enviar_reporte(self.historial_operaciones)
                 elif t == "connection_success":
                     self.card_saldo.configure(text=f"{self._simbolo_moneda}{ev['balance']:.2f}", text_color=GREEN)
                     self.card_status.configure(text="SOLICITANDO MAESTRO", text_color=MUTED)
                     self._solicitar_maestro()
                 elif t == "connection_failed":
                     self.card_saldo.configure(text="FALLO CONEXION", text_color=RED)
-                    self.card_status.configure(text="INACTIVO", text_color=MUTED)
+                    self.card_status.configure(text="SOLICITANDO MAESTRO", text_color=MUTED)
+                    self._solicitar_maestro()
                 elif t == "activos_loaded":
                     pass
                 elif t == "status_update":
@@ -1058,6 +1115,8 @@ class MasterQuantDashboard(ctk.CTk):
 
     def _on_close(self):
         self._cerrando = True
+        if self.cliente_zmq:
+            self.cliente_zmq.detener()
         self.bot_stop_event.set()
         if self.api_connected and self.api:
             try: self.api.api.close()
